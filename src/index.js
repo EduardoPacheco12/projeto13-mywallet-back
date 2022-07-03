@@ -3,9 +3,10 @@ import dotenv from "dotenv";
 import chalk from "chalk";
 import joi from "joi";
 import cors from "cors";
-import { MongoClient, ObjectId } from "mongodb";
-import bcrypt from 'bcrypt';
-import { v4 as uuid } from 'uuid';
+import { MongoClient} from "mongodb";
+import dayjs from "dayjs";
+import bcrypt from "bcrypt";
+import { v4 as uuid } from "uuid";
 dotenv.config();
 
 const mongoClient = new MongoClient(process.env.MONGO_URL);
@@ -27,6 +28,11 @@ const registerSchema = joi.object({
 const loginSchema = joi.object({
     email: joi.string().email().required(),
     password: joi.string().required()
+});
+
+const transferSchema = joi.object({
+    value: joi.string().required(),
+    description: joi.string().required()
 });
 
 server.post("/cadastro", async (req, res) => {
@@ -51,7 +57,7 @@ server.post("/cadastro", async (req, res) => {
         console.log(error);
         res.sendStatus(500);
     }    
-})
+});
 
 server.post("/login", async (req, res) => {
     const user = req.body
@@ -90,7 +96,71 @@ server.post("/login", async (req, res) => {
             token: token
         });
     }
-})
+});
+
+server.post("/deposito", async (req, res) => {
+    const body = req.body;
+    const { authorization } = req.headers;
+    
+    const token = authorization?.replace('Bearer ', '')
+    const tokenValidation = await db.collection("sessions").findOne({ token: token });
+    if(!tokenValidation) {
+        return res.status(498).send("Token expirado/inválido");
+    }
+
+    const transferValidation = transferSchema.validate(body);
+    if(transferValidation.error) {
+        return res.status(422).send("Entidade não processável");
+    }
+    
+    try {
+        const newValue = Number(body.value);
+        const newBody = {
+            value: newValue.toFixed(2),
+            description: body.description,
+            type: "depósito",
+            day: dayjs().format("DD/MM"),
+            idUser: tokenValidation.idUser
+        }
+        await db.collection("transactions").insertOne(newBody);
+        res.status(201).send("Depósito realizado");
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+});
+
+server.post("/saque", async (req, res) => {
+    const body = req.body;
+    const { authorization } = req.headers;
+    
+    const token = authorization?.replace('Bearer ', '')
+    const tokenValidation = await db.collection("sessions").findOne({ token: token });
+    if(!tokenValidation) {
+        return res.status(498).send("Token expirado/inválido");
+    }
+
+    const transferValidation = transferSchema.validate(body);
+    if(transferValidation.error) {
+        return res.status(422).send("Entidade não processável");
+    }
+    
+    try {
+        const newValue = Number(body.value);
+        const newBody = {
+            value: newValue.toFixed(2),
+            description: body.description,
+            type: "saque",
+            day: dayjs().format("DD/MM"),
+            idUser: tokenValidation.idUser
+        }
+        await db.collection("transactions").insertOne(newBody);
+        res.status(201).send("Saque realizado");
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
