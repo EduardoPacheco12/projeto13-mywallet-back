@@ -162,6 +162,19 @@ server.post("/saque", async (req, res) => {
     }
 });
 
+server.get("/extrato", async (req, res) => {
+    const { authorization } = req.headers;
+    
+    const token = authorization?.replace('Bearer ', '')
+    const tokenValidation = await db.collection("sessions").findOne({ token: token });
+    if(!tokenValidation) {
+        return res.status(498).send("Token expirado/inválido");
+    }
+
+    const arrayTransactions = await db.collection("transactions").find({ idUser: tokenValidation.idUser }).toArray();
+    res.send(arrayTransactions);
+})
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(chalk.blue("Server iniciado!!!"));
