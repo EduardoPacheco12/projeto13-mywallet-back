@@ -29,7 +29,10 @@ export async function PostWithdraw(req, res) {
     const body = req.body;
     
     try {
-        const newValue = Number(body.value);
+        let newValue = Number(body.value);
+        if(newValue < 0) {
+            newValue = Math.abs(newValue);
+        }
         const newBody = {
             value: newValue.toFixed(2),
             description: body.description,
