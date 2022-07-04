@@ -1,5 +1,7 @@
+import bcrypt from "bcrypt";
 import { loginSchema } from "../schemas/authSchema.js";
 import { registerSchema } from "../schemas/authSchema.js";
+import db from "../db.js";
 
 export async function loginValidationMiddleware(req, res, next) {
     const user = req.body

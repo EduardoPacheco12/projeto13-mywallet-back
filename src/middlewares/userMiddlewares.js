@@ -1,4 +1,5 @@
 import { transferSchema } from "../schemas/userSchema.js";
+import db from "../db.js";
 
 export async function tokenValidation(req, res, next) {
     const { authorization } = req.headers;
